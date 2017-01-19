@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livescore-demo-vertx-http-config
+  labels:
+    app: livescore-demo-vertx-http
+    project: live-score-demo
+data:
+  vertx.log.level: "TRACE"

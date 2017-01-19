@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: livescore-demo-vertx-http
+    project: live-score-demo
+  name: livescore-demo-vertx-http
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    name: livescore-demo-vertx-http
+  type: LoadBalancer
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: livescore-demo-vertx-http
+  labels:
+    project: live-score-demo
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: livescore-demo-vertx-http
+      labels:
+        name: livescore-demo-vertx-http
+        project: live-score-demo
+    spec:
+      containers:
+        - image: scholzj/livescore-demo-vertx-http:latest
+          name: livescore-demo-vertx-http
+          imagePullPolicy: Always
+          env:
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: livescore-demo-vertx-http-config
+                  key: vertx.log.level
+          ports:
+            - containerPort: 8080
+              name: http
