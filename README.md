@@ -1,29 +1,25 @@
-[![Build Status](https://travis-ci.org/scholzj/livescore-demo-vertx-amqp-bridge-rest-style.svg?branch=master)](https://travis-ci.org/scholzj/livescore-demo-vertx-amqp-bridge-rest-style)
+[![Build Status](https://travis-ci.org/scholzj/livescore-demo-vertx-http.svg?branch=master)](https://travis-ci.org/scholzj/livescore-demo-vertx-http)
 
-# LiveScore service demo with Vert.x AMQP Bridge and Apache Qpid Dispatch with REST style API
+# LiveScore service demo with Vert.x and HTTP/REST API
 
-This project demonstrates how can AMQP be used as an API for accessing services. It has a simple service for keeping live scores. The service allows to:
+This is a simple service for keeping live scores. It has HTTP based API, which allows to:
 * add games
 * update scores
 * request score results
-* receive live score updates
 
-The service is using Apache Qpid Dispatch and Vert.x AMQP Bridge for the AMQP API. Dispatch is used as AMQP server, where AMQP clients can connect. AMQP Bridge in Vert.x connects to it as client and is used to send and receive messages.
+The service is using Vert.x 3.
 
 ## API
 
-To send a request, send the message to the specific AMQP address. If reply-to address is specified, the service will send response to it. **This version of the service is using a REST style API.** The HTTP-like method which should be triggered is specified in the application property called `method`. All requests are sent to the same address `/scores`.
+The API can be accessed using HTTP. The different requests are described below.
 
 ### Add new game
 
 #### Request
 
-* Send a message to endpoint `/scores`
-* The request should have following application properties:
-```
-"method"="POST"
-```
-* The message payload should be in JSON format:
+* URL: `api/v1.0/scores`
+* Method:`POST`
+* Request body:
 ```json
 {
   "homeTeam": "Aston Villa",
@@ -36,8 +32,8 @@ To send a request, send the message to the specific AMQP address. If reply-to ad
 
 In case of success:
 
-* The response will contain application property `status` with value `201`
-* The message payload will contain a JSON object with the created game:
+* HTTP `200`
+* Response body:
 ```json
 {
   "awayTeam": "Preston North End",
@@ -50,11 +46,11 @@ In case of success:
 ```
 
 In case of problems:
-* The response will contain application property `status` with value `400`
-* The message payload will contain a JSON object with the created game:
+* HTTP `400`
+* Response body:
 ```json
 {
-  "error": "Game between Aston Villa and Preston North End already exists!"
+  "error": "<Error message>"
 }
 ```
 
@@ -62,12 +58,9 @@ In case of problems:
 
 #### Request
 
-* Send a message to endpoint `/scores`
-* The request should have following application properties:
-```
-"method"="PUT"
-```
-* The message payload should be in JSON format:
+* URL: `api/v1.0/scores`
+* Method:`PUT`
+* Request body:
 ```json
 {
   "homeTeam": "Aston Villa",
@@ -82,8 +75,8 @@ In case of problems:
 
 In case of success:
 
-* The response will contain application property `status` with value `200`
-* The message payload will contain a JSON object with the updated game:
+* HTTP `200`
+* Response body:
 ```json
 {
   "awayTeam": "Preston North End",
@@ -96,11 +89,11 @@ In case of success:
 ```
 
 In case of problems:
-* The response will contain application property `status` with value `400`
-* The message payload will contain a JSON object with the created game:
+* HTTP `400`
+* Response body:
 ```json
 {
-  "error": "The home and away team goals have to be => 0!"
+  "error": "<Error message>"
 }
 ```
 
@@ -108,19 +101,16 @@ In case of problems:
 
 #### Request
 
-* Send a message to endpoint `/scores`
-* The request should have following application properties:
-```
-"method"="GET"
-```
-* The message payload should be empty
+* URL: `api/v1.0/scores`
+* Method:`GET`
+* Request body: Empty
 
 #### Response
 
 In case of success:
 
-* The response will contain application property `status` with value `200`
-* The message payload will contain a JSON array with the game results:
+* HTTP `200`
+* Response body:
 ```json
 [
   {
@@ -134,57 +124,25 @@ In case of success:
 ]
 ```
 
-### Receive live score updates
-
-#### Subscribe
-
-* To subscribe to live score updates, connect a receiver to `/liveScores`
-
-#### Broadcasts
-
-In case of success:
-
-* The message payload will contain a JSON object with the game results:
-```json
-{
-  "awayTeam": "Preston North End",
-  "awayTeamGoals": 1,
-  "gameTime": "HT",
-  "homeTeam": "Aston Villa",
-  "homeTeamGoals": 0,
-  "startTime": "Saturday 14th January 2017, 17:30"
-}
-```
-
 ### API Examples
 
 You can use the qpid-send and qpid-receive utilities from Apache Qpid project to communicate with the service from the command line:
 
 * Create a new game
 ```bash
-qpid-send -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "'/addGame'" --content-string '{"homeTeam": "Aston Villa", "awayTeam": "Preston North End", "startTime": "14th January 2017, 17:30"}'
-
+curl -X POST --data '{ "homeTeam": "Aston Villa", "awayTeam": "Preston North End", "startTime": "14th January 2017, 17:30" }' http://localhost:8080/api/v1.0/scores
 ```
 
 * Update the score
 ```bash
-qpid-send -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "'/setScore'" --content-string '{"homeTeam": "Aston Villa", "awayTeam": "Preston North End", "homeTeamGoals": 1, "awayTeamGoals": 0, "gameTime": "13"}'
-qpid-send -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "'/setScore'" --content-string '{"homeTeam": "Aston Villa", "awayTeam": "Preston North End", "homeTeamGoals": 2, "awayTeamGoals": 0, "gameTime": "35"}'
-
+curl -X PUT --data '{ "homeTeam": "Aston Villa", "awayTeam": "Preston North End", "homeTeamGoals": 1, "awayTeamGoals": 0, "gameTime": "HT"}' http://localhost:8080/api/v1.0/scores
 ```
 
 * Get scores
 ```bash
-qpid-receive -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "myReplyToAddress" -m 1 -f --print-headers yes &
-qpid-send -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "'/getScores'" --content-string '{}' --reply-to "myReplyToAddress"
-
+curl -X GET --data '' http://localhost:8080/api/v1.0/scores
 ```
 
-* Subscribe to live updates
-```bash
-qpid-receive -b 127.0.0.1:5672 --connection-options "{protocol: amqp1.0}" -a "'/liveUpdates'" -f
-
-```
 
 ## Kubernetes deployment
 
